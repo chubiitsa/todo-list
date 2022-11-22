@@ -1,45 +1,36 @@
-// @ts-check
-
-const path = require('path');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const mode = process.env.NODE_ENV || 'development';
 
 module.exports = {
   mode,
-  resolve: {
-    extensions: ['.js', '.jsx'],
-  },
+  entry: "./src/index.js",
   output: {
-    path: path.join(__dirname, 'dist', 'public'),
-    publicPath: '/assets/',
-  },
-  devServer: {
-    compress: true,
-    port: 8090,
-    host: '0.0.0.0',
-    // publicPath: '/assets/',
-    historyApiFallback: true,
+    filename: "main.js",
+    path: path.resolve(__dirname, "build"),
   },
   plugins: [
-    new MiniCssExtractPlugin(),
+    new HtmlWebpackPlugin({
+      template: path.join(__dirname, "public", "index.html"),
+    }),
   ],
+  devServer: {
+    static: {
+      directory: path.join(__dirname, "build"),
+    },
+    port: 3000,
+  },
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        use: 'babel-loader',
-      },
-      {
-        test: /\.s[ac]ss$/i,
-        use: [
-          { loader: MiniCssExtractPlugin.loader },
-          { loader: 'css-loader' },
-          { loader: 'postcss-loader' },
-          { loader: 'sass-loader' },
-        ],
+        use: ["babel-loader"],
       },
     ],
+  },
+  resolve: {
+    extensions: ["*", ".js", ".jsx"],
   },
 };

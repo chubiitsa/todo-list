@@ -4,7 +4,7 @@
   "description": "trial for womanup",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode production",
+    "build": "webpack",
     "start": "webpack serve"
   },
   "repository": {
@@ -25,7 +25,7 @@
     "@webpack-cli/generators": "^3.0.0",
     "autoprefixer": "^10.4.4",
     "babel-loader": "^8.3.0",
-    "css-loader": "^6.7.1",
+    "css-loader": "^6.7.2",
     "eslint": "^8.28.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-plugin-functional": "^4.4.1",
@@ -47,6 +47,11 @@
     "webpack-dev-server": "^4.8.1"
   },
   "dependencies": {
+    "@firebase/firestore": "^3.7.3",
+    "classnames": "^2.3.2",
+    "dayjs": "^1.11.6",
+    "firebase": "^9.14.0",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

@@ -36,7 +36,7 @@ function ToDo({ todo, handleToggle, handleRemove }) {
       </div>
       <div className="fields-wrapper-right">
         <div className="todo-item-field">{task}</div>
-        <div className={cn('todoItemField', 'description')}>{description}</div>
+        <div className={cn('todo-item-field', 'description')}>{description}</div>
       </div>
     </li>
   );

@@ -29,6 +29,17 @@ input, textarea {
     border: 1px solid darkgrey;
     color: #CCF381;
     border-radius: 3px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: #CCF381;
+    color: #4831D4;
+}
+
+.button:focus {
+    background-color: #CCF381;
+    color: #4831D4;
 }
 
 .task-control {

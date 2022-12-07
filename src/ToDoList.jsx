@@ -4,38 +4,28 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
-  query,
   updateDoc,
 } from '@firebase/firestore';
+import db from './firebase.js';
 import ToDo from './Todo.jsx';
 import getModal from './modals/index.js';
 
-async function fetchData(database) {
-  const colRef = collection(database, 'todos');
-  const docsSnap = await getDocs(colRef);
-  return docsSnap.docs.map((task) => task.data());
-}
-
-function ToDoList({ database }) {
+function ToDoList() {
   const [TodoList, setToDoList] = useState([]);
 
   useEffect(() => {
-    fetchData(database).then((d) => setToDoList(d));
+    const colRef = collection(db, 'todos');
+    onSnapshot(colRef, (querySnapshot) => {
+      setToDoList(
+        querySnapshot.docs
+          .map((doc) => ({ ...doc.data(), id: doc.id })),
+      );
+    });
   }, []);
 
-  const q = query(collection(database, '/todos'));
-  onSnapshot(q, (querySnapshot) => {
-    const todos = [];
-    querySnapshot.forEach((task) => {
-      todos.push(task.data());
-    });
-    setToDoList(todos);
-  });
-
   const handleToggle = async (id) => {
-    const docRef = doc(database, '/todos', id);
+    const docRef = doc(db, '/todos', id);
     const docSnap = await getDoc(docRef);
     const isComplete = docSnap.data().complete;
     await updateDoc(docRef, { complete: !isComplete });
@@ -49,10 +39,10 @@ function ToDoList({ database }) {
       return null;
     }
     const Component = getModal(modalInfo.type);
-    return <Component modalInfo={modalInfo} onHide={hideModal} db={database} />;
+    return <Component modalInfo={modalInfo} onHide={hideModal} />;
   };
 
-  const sortedList = sortBy(TodoList, 'complete');
+  const sortedList = sortBy(TodoList, ['complete', 'task']);
 
   return (
     <ul className="todo-list">

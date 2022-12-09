@@ -1,7 +1,7 @@
-import Remove from './Remove.jsx';
+import { Remove } from './Remove.tsx';
 
 const modals = {
   removing: Remove,
 };
 
-export default (modalName) => modals[modalName];
+export const getModal = (modalName) => modals[modalName];

@@ -5,11 +5,12 @@ const mode = process.env.NODE_ENV || 'development';
 
 module.exports = {
   mode,
-  entry: "./src/index.js",
+  entry: "./src/index.tsx",
   output: {
     filename: "main.js",
     path: path.resolve(__dirname, "build"),
   },
+  devtool: false,
   plugins: [
     new HtmlWebpackPlugin({
       hash: true,
@@ -26,9 +27,9 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/,
+        test: /\.tsx?$/,
+        use: 'ts-loader',
         exclude: /node_modules/,
-        use: ["babel-loader"],
       },
       {
         test: /\.css$/i,
@@ -37,6 +38,6 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ["*", ".js", ".jsx"],
+    extensions: ['.tsx', '.ts', '.js'],
   },
 };

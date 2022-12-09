@@ -2,6 +2,6 @@ start:
 	npx webpack serve
 
 lint:
-	npx eslint . --ext js,jsx
+	npx eslint '*/**/*.{js,ts,tsx}'
 
 .PHONY: test

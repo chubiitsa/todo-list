@@ -1,47 +1,90 @@
-import { useState, useRef, useEffect, FC } from 'react'
+import {useState, useRef, useEffect, FC} from 'react'
+import {collection, addDoc} from '@firebase/firestore'
+import {ref, uploadBytesResumable, getDownloadURL} from 'firebase/storage'
 import * as dayjs from 'dayjs'
-import { collection, addDoc } from '@firebase/firestore'
-import { db } from './firebase'
+import {db, filesRef} from './firebase'
 
-export const ToDoForm:FC = () => {
-  const curValue = dayjs().format('YYYY-MM-DD')
-  const [userData, setUserData] = useState({ deadline: curValue })
+export const ToDoForm: FC = () => {
+    const curValue = dayjs().format('YYYY-MM-DD')
+    const [userData, setUserData] = useState({deadline: curValue, fileUrl: ''})
 
-  const deadlineInputEl = useRef(null)
-  const taskInputEl = useRef(null)
-  const formEl = useRef(null)
-  useEffect(() => {
-    deadlineInputEl.current.value = curValue
-    taskInputEl.current.focus()
-  }, [])
+    const deadlineInputEl = useRef(null)
+    const fileInputEl = useRef(null)
+    const taskInputEl = useRef(null)
+    const formEl = useRef(null)
+    useEffect(() => {
+        deadlineInputEl.current.value = curValue
+        taskInputEl.current.focus()
+    }, [])
 
-  const addTask = async (userInput: { deadline: string, name?: string, description?: string }) => {
-    const { name, description, deadline } = userInput
-    await addDoc(collection(db, 'todos'), {
-      task: name, description, deadline, complete: false
-    })
-  }
+    const addTask = async (userInput: { deadline: string, name?: string, description?: string }) => {
+        const {name, description, deadline} = userInput
 
-  const handleChange = (e: { currentTarget: { name: string, value: string } }) => {
-    const fieldName = e.currentTarget.name
-    setUserData({ ...userData, [fieldName]: e.currentTarget.value })
-  }
+        const file = fileInputEl.current.files[0]
 
-  const handleDeadlineChange = (e: { currentTarget: { value: string } }) => {
-    setUserData({ ...userData, deadline: e.currentTarget.value })
-    deadlineInputEl.current.value = e.currentTarget.value
-  }
+        if (file) {
+            const storageRef = ref(filesRef, `${file.name}`)
+            const uploadTask = uploadBytesResumable(storageRef, file);
 
-  const submitHandler = (e: { preventDefault: () => void }) => {
-    e.preventDefault()
-    addTask(userData).then(() => console.log('task is added'))
-    formEl.current.reset()
-    deadlineInputEl.current.value = curValue
-    setUserData({ deadline: curValue })
-    taskInputEl.current.focus()
-  }
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Upload is ' + progress + '% done');
+                    switch (snapshot.state) {
+                        case 'paused':
+                            console.log('Upload is paused');
+                            break;
+                        case 'running':
+                            console.log('Upload is running');
+                            break;
+                    }
+                },
+                (error) => {
+                    switch (error.code) {
+                        case 'storage/unauthorized':
+                            break;
+                        case 'storage/canceled':
+                            break;
+                        case 'storage/unknown':
+                            break;
+                    }
+                },
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+                        setUserData({...userData, fileUrl: downloadURL})
+                        await addDoc(collection(db, 'todos'), {
+                            task: name, description, deadline, complete: false, fileUrl: downloadURL
+                        })
+                    });
+                }
+            );
+        } else {
+            await addDoc(collection(db, 'todos'), {
+                task: name, description, deadline, complete: false, fileUrl: ''
+            })
+        }
+    }
 
-  return (
+    const handleChange = (e: { currentTarget: { name: string, value: string } }) => {
+        const fieldName = e.currentTarget.name
+        setUserData({...userData, [fieldName]: e.currentTarget.value})
+    }
+
+    const handleDeadlineChange = (e: { currentTarget: { value: string } }) => {
+        setUserData({...userData, deadline: e.currentTarget.value})
+        deadlineInputEl.current.value = e.currentTarget.value
+    }
+
+    const submitHandler = (e: { preventDefault: () => void }) => {
+        e.preventDefault()
+        addTask(userData).then(() => console.log('task is added'))
+        formEl.current.reset()
+        deadlineInputEl.current.value = curValue
+        setUserData({deadline: curValue, fileUrl: ''})
+        taskInputEl.current.focus()
+    }
+
+    return (
         <form ref={formEl} className="todo-form" onSubmit={submitHandler}>
             <div className="input-wrapper">
                 <label htmlFor="name">
@@ -72,6 +115,18 @@ export const ToDoForm:FC = () => {
                     />
                 </label>
             </div>
+            <div className="input-wrapper">
+                <label htmlFor="description">
+                    Add some files
+                    <input
+                        ref={fileInputEl}
+                        type="file"
+                        id="file"
+                        name="fileUrl"
+                        onChange={handleChange}
+                    />
+                </label>
+            </div>
             <div className="input-wrapper-h">
                 <div className="input-wrapper">
                     <label className="label" htmlFor="deadline">
@@ -91,5 +146,5 @@ export const ToDoForm:FC = () => {
             </div>
 
         </form>
-  )
+    )
 }

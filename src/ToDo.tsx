@@ -1,27 +1,28 @@
+import {FC} from "react"
 import * as dayjs from 'dayjs'
 import * as cn from 'classnames'
-import { AppProps } from './types'
+import {AppProps} from './types'
 import './App.css'
 
-export function ToDo (props: AppProps) {
-  const { todo, handleToggle, handleRemove } = props
-  const {
-    task, description, deadline, complete, id
-  } = todo
-  const expiresString = dayjs(deadline).format('DD/MM/YYYY')
-  const expired = dayjs(deadline).diff(dayjs())
-  const classes = {
-    'todo-list-item': true,
-    complete,
-    expired: expired < 0
-  }
+export const ToDo: FC<AppProps> = (props) => {
+    const {todo, handleToggle, handleRemove} = props
+    const {
+        task, description, deadline, complete, id, fileUrl
+    } = todo
+    const expiresString = dayjs(deadline).format('DD/MM/YYYY')
+    const expired = dayjs(deadline).diff(dayjs())
+    const classes = {
+        'todo-list-item': true,
+        complete,
+        expired: expired < 0
+    }
 
-  const handleClick = (e: { preventDefault: () => void, currentTarget: { id: string } }) => {
-    e.preventDefault()
-    handleToggle(e.currentTarget.id)
-  }
+    const handleClick = (e: { preventDefault: () => void, currentTarget: { id: string } }) => {
+        e.preventDefault()
+        handleToggle(e.currentTarget.id)
+    }
 
-  return (
+    return (
         <li
             id={id}
             className={cn(classes)}
@@ -38,7 +39,9 @@ export function ToDo (props: AppProps) {
             <div className="fields-wrapper-right">
                 <div className="todo-item-field">{task}</div>
                 <div className={cn('todo-item-field', 'description')}>{description}</div>
+                {fileUrl.length > 0 ?
+                    <a href={fileUrl} className="todo-item-field" target="_blank" rel="noreferrer">file</a> : null}
             </div>
         </li>
-  )
+    )
 }

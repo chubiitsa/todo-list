@@ -1,28 +1,39 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { deleteDoc, doc } from '@firebase/firestore';
 import { db } from '../firebase';
-import { ModalInfo } from '../types';
+import { Todo } from '../types';
+import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
 
-export const Remove: FC<{ modalInfo: ModalInfo; onHide: () => void }> = ({ modalInfo, onHide }) => {
-  const { todo } = modalInfo;
-
+export const Remove: FC<{ todo: Todo }> = ({ todo }) => {
   const handleRemove = async () => {
-    onHide();
     await deleteDoc(doc(db, 'todos', todo.id));
   };
+  const [show, setShow] = useState(false);
+
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
 
   return (
-    <div className="modal">
-      <div>
-        Do you really want to delete the following task?
-        <div>{todo.name}</div>
-      </div>
-      <button className="button" type="button" onClick={onHide}>
-        Close
-      </button>
-      <button className="button" type="button" onClick={handleRemove}>
-        Delete
-      </button>
-    </div>
+    <>
+      <Button variant="danger" onClick={handleShow}>
+        X
+      </Button>
+
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Deleting task: {todo.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Do you really want to delete this item?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleRemove}>
+            Delete todo
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   );
 };

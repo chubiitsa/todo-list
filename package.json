@@ -54,11 +54,13 @@
     "@firebase/firestore": "^3.7.3",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.9",
+    "bootstrap": "^5.2.3",
     "classnames": "^2.3.2",
     "dayjs": "^1.11.6",
     "firebase": "^9.14.0",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
+    "react-bootstrap": "^2.7.0",
     "react-dom": "^18.2.0",
     "ts-loader": "^9.4.2"
   }

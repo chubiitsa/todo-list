@@ -1,10 +1,9 @@
 import { useEffect, useState, FC } from 'react';
 import { sortBy } from 'lodash';
-import { collection, doc, getDoc, onSnapshot, updateDoc } from '@firebase/firestore';
+import { collection, onSnapshot } from '@firebase/firestore';
+import ListGroup from 'react-bootstrap/ListGroup';
 import { db } from './firebase';
 import { ToDo } from './ToDo';
-import { getModal } from './modals';
-import { Todo, ModalInfo } from './types';
 
 export const ToDoList: FC = () => {
   const [todoList, setToDoList] = useState([]);
@@ -16,38 +15,13 @@ export const ToDoList: FC = () => {
     });
   }, []);
 
-  const handleToggle = async (id: string) => {
-    const docRef = doc(db, '/todos', id);
-    const docSnap = await getDoc(docRef);
-    const isComplete = docSnap.data().complete;
-    await updateDoc(docRef, { complete: !isComplete });
-  };
-
-  const [modalInfo, setModalInfo] = useState({ type: null, todo: null });
-  const showModal = (type: string, todo: Todo) => setModalInfo({ type, todo });
-  const hideModal = () => setModalInfo({ type: null, todo: null });
-  const renderModal: FC<{ modalInfo: ModalInfo; hideModal: () => void }> = ({ modalInfo, hideModal }) => {
-    if (!modalInfo.type) {
-      return null;
-    }
-    const Component = getModal(modalInfo.type);
-    return <Component modalInfo={modalInfo} onHide={hideModal} />;
-  };
-
-  const sortedList = sortBy(todoList, ['complete', 'name']);
+  const sortedList = sortBy(todoList, ['deadline', 'complete']);
 
   return (
-    <ul className="todo-list">
+    <ListGroup className="pb-3">
       {sortedList.map((todo) => (
-        <ToDo
-          key={todo.id}
-          todo={todo}
-          handleToggle={handleToggle}
-          handleRemove={() => showModal('removing', todo)}
-          handleEdit={() => showModal('edit', todo)}
-        />
+        <ToDo key={todo.id} todo={todo} />
       ))}
-      {renderModal({ modalInfo, hideModal })}
-    </ul>
+    </ListGroup>
   );
 };

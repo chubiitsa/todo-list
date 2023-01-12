@@ -1,48 +1,24 @@
 import { FC, useEffect, useRef, useState } from 'react';
-import { updateDoc, doc } from '@firebase/firestore';
+import { Todo } from '../types';
+import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
+import { doc, updateDoc } from '@firebase/firestore';
 import { db, filesRef } from '../firebase';
-import { ModalInfo, Todo } from '../types';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 
-export const Edit: FC<{ modalInfo: ModalInfo; onHide: () => void }> = ({ modalInfo, onHide }) => {
-  const { todo } = modalInfo;
+export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
   const [userData, setUserData] = useState(todo);
   const [fileStatus, setFileStatus] = useState(false);
 
-  const deadlineInputEl = useRef(null);
-  const descriptionInputEl = useRef(null);
   const fileInputEl = useRef(null);
-  const taskInputEl = useRef(null);
-  const formEl = useRef(null);
   useEffect(() => {
     if (todo.fileUrl.length > 0) {
       setFileStatus(true);
     }
-    taskInputEl.current.value = todo.name;
-    descriptionInputEl.current.value = todo.description;
-    deadlineInputEl.current.value = todo.deadline;
-    taskInputEl.current.focus();
   }, []);
 
-  const handleChange = (e: { currentTarget: { name: string; value: string } }) => {
-    const fieldName = e.currentTarget.name;
-    setUserData({ ...userData, [fieldName]: e.currentTarget.value });
-  };
-
-  const handleDeadlineChange = (e: { currentTarget: { value: string } }) => {
-    setUserData({ ...userData, deadline: e.currentTarget.value });
-    deadlineInputEl.current.value = e.currentTarget.value;
-  };
-
-  const handleDeleteFile = () => {
-    setUserData({ ...userData, fileUrl: '' });
-    setFileStatus(false);
-  };
-
-  const editTask = async (userInput: Todo) => {
-    const toDoRef = doc(db, 'todos', todo.id);
+  const updateTask = async (userInput: Todo) => {
     const { name, description, deadline } = userInput;
-
+    const toDoRef = doc(db, 'todos', userInput.id);
     const file = fileInputEl.current.files[0];
 
     if (file) {
@@ -75,12 +51,11 @@ export const Edit: FC<{ modalInfo: ModalInfo; onHide: () => void }> = ({ modalIn
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            setUserData({ ...userData, fileUrl: downloadURL });
             await updateDoc(toDoRef, {
               name,
               description,
               deadline,
-              complete: false,
+              complete: userInput.complete,
               fileUrl: downloadURL,
             });
           });
@@ -91,99 +66,117 @@ export const Edit: FC<{ modalInfo: ModalInfo; onHide: () => void }> = ({ modalIn
         name,
         description,
         deadline,
-        complete: false,
-        fileUrl: '',
+        complete: userInput.complete,
+        fileUrl: userInput.fileUrl,
       });
     }
   };
 
-  const handleSubmit = (e: { preventDefault: () => void }) => {
+  const handleChange = (e: { currentTarget: { name: string; value: string } }) => {
+    const fieldName = e.currentTarget.name;
+    setUserData({ ...userData, [fieldName]: e.currentTarget.value });
+  };
+
+  const handleDeleteFile = () => {
+    setUserData({ ...userData, fileUrl: '' });
+    setFileStatus(false);
+  };
+
+  const submitHandler = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    editTask(userData).then(() => console.log('task is changed'));
-    formEl.current.reset();
-    taskInputEl.current.focus();
-    onHide();
+    updateTask(userData);
+    handleClose();
   };
 
   const renderFile = (state: boolean) => {
-      return (state ?
-        <a href={todo.fileUrl} target="_blank" rel="noreferrer" >
+    return state ? (
+      <>
+        <a href={userData.fileUrl} target="_blank" rel="noreferrer">
           View file
-        </a> : null
-      )
+        </a>
+        <Button variant="light" onClick={handleDeleteFile}>
+          Delete file
+        </Button>
+      </>
+    ) : null;
   };
 
+  const [show, setShow] = useState(false);
+
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
+
   return (
-    <div className="modal">
-      <form ref={formEl} className="todo-form" onSubmit={handleSubmit}>
-        <div className="input-wrapper">
-          <label htmlFor="name">
-            Task name
-            <input
-              required
-              ref={taskInputEl}
-              type="text"
-              id="name"
-              name="name"
-              maxLength={20}
-              size={10}
-              onChange={handleChange}
-            />
-          </label>
-        </div>
-        <div className="input-wrapper">
-          <label htmlFor="description">
-            Task description
-            <textarea
-              ref={descriptionInputEl}
-              id="description"
-              name="description"
-              rows={5}
-              cols={33}
-              onChange={handleChange}
-              placeholder="Add more details to the task"
-              required
-            />
-          </label>
-        </div>
-        <div className="input-wrapper">
-          {fileStatus ? (
-            <div>
-              {renderFile(fileStatus)}
-              <button type="button" onClick={handleDeleteFile}>
-                X
-              </button>
-            </div>
-          ) : (
-            <label htmlFor="description">
-              Add some files
-              <input ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
-            </label>
-          )}
-        </div>
-        <div className="input-wrapper-h">
-          <div className="input-wrapper">
-            <label className="label" htmlFor="deadline">
-              <p className="field-name">Deadline </p>
-              <input
-                ref={deadlineInputEl}
-                type="date"
-                id="start"
-                name="deadline"
-                min="2021-12-31"
-                max="2050-12-31"
-                onChange={handleDeadlineChange}
+    <>
+      <Button variant="warning" onClick={handleShow}>
+        ...
+      </Button>
+
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Editing task: {todo.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={submitHandler} className="mb-3">
+            <Form.Group className="mb-2">
+              <Form.Label htmlFor="name">Task name</Form.Label>
+              <Form.Control
+                required
+                type="text"
+                id="name"
+                name="name"
+                maxLength={40}
+                size="sm"
+                value={userData.name}
+                onChange={handleChange}
               />
-            </label>
-          </div>
-          <button className="button" type="button" onClick={onHide}>
-            Close
-          </button>
-          <button className="button" type="submit">
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
+            </Form.Group>
+            <Form.Group className="mb-2">
+              <Form.Label htmlFor="description">Task description</Form.Label>
+              <Form.Control
+                as="textarea"
+                id="description"
+                name="description"
+                value={userData.description}
+                onChange={handleChange}
+                placeholder="Add more details to the task"
+                required
+              />
+            </Form.Group>
+            {renderFile(fileStatus)}
+            <Form.Group className="mb-2">
+              <Form.Label htmlFor="fileUrl">Add some files</Form.Label>
+              <Form.Control ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
+            </Form.Group>
+            <Row className="mb-2">
+              <Col>
+                <Form.Group className="d-flex justify-content-between">
+                  <Form.Label htmlFor="deadline">Deadline</Form.Label>
+                  <Form.Control
+                    type="date"
+                    id="start"
+                    name="deadline"
+                    min="2022-12-31"
+                    max="2050-12-31"
+                    value={userData.deadline}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md="auto">
+                <Button type="submit" variant="primary">
+                  Save changes
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   );
 };

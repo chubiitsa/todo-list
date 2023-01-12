@@ -3,23 +3,32 @@ import { collection, addDoc } from '@firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import * as dayjs from 'dayjs';
 import { db, filesRef } from './firebase';
+import { Form, Button, Row, Col } from 'react-bootstrap';
+import { Todo } from './types';
 
 export const ToDoForm: FC = () => {
-  const curValue = dayjs().format('YYYY-MM-DD');
-  const [userData, setUserData] = useState({ deadline: curValue, fileUrl: '' });
+  const currentDate = dayjs().format('YYYY-MM-DD');
+  const initialState = {
+      id: '',
+      name: '',
+      description: '',
+      deadline: currentDate,
+      fileUrl: '',
+      complete: false,
+  }
+  const [userData, setUserData] = useState(initialState);
 
   const deadlineInputEl = useRef(null);
   const fileInputEl = useRef(null);
   const taskInputEl = useRef(null);
   const formEl = useRef(null);
   useEffect(() => {
-    deadlineInputEl.current.value = curValue;
+    deadlineInputEl.current.value = currentDate;
     taskInputEl.current.focus();
   }, []);
 
-  const addTask = async (userInput: { deadline: string; name?: string; description?: string }) => {
+  const addTask = async (userInput: Todo) => {
     const { name, description, deadline } = userInput;
-
     const file = fileInputEl.current.files[0];
 
     if (file) {
@@ -52,7 +61,6 @@ export const ToDoForm: FC = () => {
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            setUserData({ ...userData, fileUrl: downloadURL });
             await addDoc(collection(db, 'todos'), {
               name,
               description,
@@ -79,76 +87,64 @@ export const ToDoForm: FC = () => {
     setUserData({ ...userData, [fieldName]: e.currentTarget.value });
   };
 
-  const handleDeadlineChange = (e: { currentTarget: { value: string } }) => {
-    setUserData({ ...userData, deadline: e.currentTarget.value });
-    deadlineInputEl.current.value = e.currentTarget.value;
-  };
-
   const submitHandler = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     addTask(userData).then(() => console.log('task is added'));
     formEl.current.reset();
-    deadlineInputEl.current.value = curValue;
-    setUserData({ deadline: curValue, fileUrl: '' });
+    deadlineInputEl.current.value = currentDate;
+    setUserData(initialState);
     taskInputEl.current.focus();
   };
 
   return (
-    <form ref={formEl} className="todo-form" onSubmit={submitHandler}>
-      <div className="input-wrapper">
-        <label htmlFor="name">
-          Task name
-          <input
-            required
-            ref={taskInputEl}
-            type="text"
-            id="name"
-            name="name"
-            maxLength={20}
-            size={10}
-            onChange={handleChange}
-          />
-        </label>
-      </div>
-      <div className="input-wrapper">
-        <label htmlFor="description">
-          Task description
-          <textarea
-            id="description"
-            name="description"
-            rows={5}
-            cols={33}
-            onChange={handleChange}
-            placeholder="Add more details to the task"
-            required
-          />
-        </label>
-      </div>
-      <div className="input-wrapper">
-        <label htmlFor="description">
-          Add some files
-          <input ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
-        </label>
-      </div>
-      <div className="input-wrapper-h">
-        <div className="input-wrapper">
-          <label className="label" htmlFor="deadline">
-            <p className="field-name">Deadline </p>
-            <input
+    <Form ref={formEl} onSubmit={submitHandler} className="mb-3">
+      <Form.Group className="mb-2">
+        <Form.Label htmlFor="name">Task name</Form.Label>
+        <Form.Control
+          required
+          ref={taskInputEl}
+          type="text"
+          id="name"
+          name="name"
+          maxLength={40}
+          size="sm"
+          onChange={handleChange}
+        />
+      </Form.Group>
+      <Form.Group className="mb-2">
+        <Form.Label htmlFor="description">Task description</Form.Label>
+        <Form.Control
+          as="textarea"
+          id="description"
+          name="description"
+          onChange={handleChange}
+          placeholder="Add more details to the task"
+          required
+        />
+      </Form.Group>
+      <Form.Group className="mb-2">
+        <Form.Label htmlFor="fileUrl">Add some files</Form.Label>
+        <Form.Control ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
+      </Form.Group>
+      <Row className="mb-2">
+        <Col>
+          <Form.Group className="d-flex justify-content-between">
+            <Form.Label htmlFor="deadline">Deadline</Form.Label>
+            <Form.Control
               ref={deadlineInputEl}
               type="date"
               id="start"
               name="deadline"
               min="2022-12-31"
               max="2050-12-31"
-              onChange={handleDeadlineChange}
+              onChange={handleChange}
             />
-          </label>
-        </div>
-        <button type="submit" className="button">
-          Add task
-        </button>
-      </div>
-    </form>
+          </Form.Group>
+        </Col>
+        <Col md="auto">
+          <Button type="submit">Add task</Button>
+        </Col>
+      </Row>
+    </Form>
   );
 };

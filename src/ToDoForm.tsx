@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, FC } from 'react';
+import { FC, useState, useRef, useEffect } from 'react';
 import { collection, addDoc } from '@firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import * as dayjs from 'dayjs';
-import { db, filesRef } from './firebase';
+import { db } from './firebase';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import { Todo } from './types';
+import { uploadFile } from './utils/uploadFile';
 
 export const ToDoForm: FC = () => {
   const currentDate = dayjs().format('YYYY-MM-DD');
@@ -15,6 +15,7 @@ export const ToDoForm: FC = () => {
     deadline: currentDate,
     fileUrl: '',
     complete: false,
+    fileStatus: false,
   };
   const [userData, setUserData] = useState(initialState);
 
@@ -25,50 +26,13 @@ export const ToDoForm: FC = () => {
     taskInputEl.current.focus();
   }, []);
 
-  const uploadFile = (file: Blob, userInput: Todo) => {
-    const storageRef = ref(filesRef, `${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-        switch (snapshot.state) {
-          case 'paused':
-            console.log('Upload is paused');
-            break;
-          case 'running':
-            console.log('Upload is running');
-            break;
-        }
-      },
-      (error) => {
-        switch (error.code) {
-          case 'storage/unauthorized':
-            break;
-          case 'storage/canceled':
-            break;
-          case 'storage/unknown':
-            break;
-        }
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          await addDoc(collection(db, 'todos'), {
-            ...userInput,
-            fileUrl: downloadURL,
-          });
-        });
-      },
-    );
-  };
-
   const addTask = async (userInput: Todo) => {
     const file = fileInputEl.current.files[0];
 
     if (file) {
-      uploadFile(file, userInput);
+      await uploadFile(file).then(async (downloadUrl: string) => {
+        await addDoc(collection(db, 'todos'), { ...userInput, fileUrl: downloadUrl, fileStatus: true });
+      });
     } else {
       await addDoc(collection(db, 'todos'), userInput);
     }
@@ -113,14 +77,18 @@ export const ToDoForm: FC = () => {
           required
         />
       </Form.Group>
-      <Form.Group className="mb-2">
-        <Form.Label htmlFor="fileUrl">Add some files</Form.Label>
+      <Form.Group className="mb-2 d-flex justify-content-between">
+        <Form.Label className="col-md-auto me-2" htmlFor="fileUrl">
+          Add files
+        </Form.Label>
         <Form.Control ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
       </Form.Group>
       <Row className="mb-2">
         <Col>
           <Form.Group className="d-flex justify-content-between">
-            <Form.Label htmlFor="deadline">Deadline</Form.Label>
+            <Form.Label className="me-2" htmlFor="deadline">
+              Deadline
+            </Form.Label>
             <Form.Control
               type="date"
               id="start"

@@ -5,4 +5,5 @@ export type Todo = {
   complete: boolean;
   deadline: string;
   fileUrl: string;
+  fileStatus: boolean;
 };

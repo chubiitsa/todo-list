@@ -9,7 +9,7 @@ import { Remove } from './modals/Remove';
 
 export const ToDo: FC<{ todo: Todo }> = (props) => {
   const { todo } = props;
-  const { name, description, deadline, complete, id, fileUrl } = todo;
+  const { name, description, deadline, complete, id, fileUrl, fileStatus } = todo;
   const expiresString = dayjs(deadline).format('DD/MM/YYYY');
   const expired = dayjs(deadline).diff(dayjs());
   const isTodoExpired = expired < 0 ? 'danger' : 'secondary';
@@ -32,7 +32,7 @@ export const ToDo: FC<{ todo: Todo }> = (props) => {
         <Badge className="mb-2" bg={isTodoExpired}>
           {expiresString}
         </Badge>
-        {fileUrl.length > 0 ? (
+        {fileStatus ? (
           <Badge bg="info">
             <a href={fileUrl} className="todo-item-field" target="_blank" rel="noreferrer">
               file

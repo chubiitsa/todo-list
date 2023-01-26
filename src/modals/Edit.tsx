@@ -1,74 +1,25 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useRef, useState } from 'react';
 import { Todo } from '../types';
 import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { doc, updateDoc } from '@firebase/firestore';
-import { db, filesRef } from '../firebase';
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { db } from '../firebase';
+import { uploadFile } from '../utils/uploadFile';
 
 export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
   const [userData, setUserData] = useState(todo);
-  const [fileStatus, setFileStatus] = useState(false);
-
   const fileInputEl = useRef(null);
-  useEffect(() => {
-    if (todo.fileUrl.length > 0) {
-      setFileStatus(true);
-    }
-  }, []);
 
   const updateTask = async (userInput: Todo) => {
-    const { name, description, deadline } = userInput;
     const toDoRef = doc(db, 'todos', userInput.id);
     const file = fileInputEl.current.files[0];
 
     if (file) {
-      const storageRef = ref(filesRef, `${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log('Upload is ' + progress + '% done');
-          switch (snapshot.state) {
-            case 'paused':
-              console.log('Upload is paused');
-              break;
-            case 'running':
-              console.log('Upload is running');
-              break;
-          }
-        },
-        (error) => {
-          switch (error.code) {
-            case 'storage/unauthorized':
-              break;
-            case 'storage/canceled':
-              break;
-            case 'storage/unknown':
-              break;
-          }
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            await updateDoc(toDoRef, {
-              name,
-              description,
-              deadline,
-              complete: userInput.complete,
-              fileUrl: downloadURL,
-            });
-          });
-        },
-      );
-    } else {
-      await updateDoc(toDoRef, {
-        name,
-        description,
-        deadline,
-        complete: userInput.complete,
-        fileUrl: userInput.fileUrl,
+      await uploadFile(file).then(async (downloadUrl: string) => {
+        await updateDoc(toDoRef, { ...userInput, fileUrl: downloadUrl, fileStatus: true });
+        setUserData({ ...userData, fileStatus: true });
       });
+    } else {
+      await updateDoc(toDoRef, userInput);
     }
   };
 
@@ -78,13 +29,12 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
   };
 
   const handleDeleteFile = () => {
-    setUserData({ ...userData, fileUrl: '' });
-    setFileStatus(false);
+    setUserData({ ...userData, fileStatus: false });
   };
 
   const handleSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    updateTask(userData);
+    updateTask(userData).then(() => console.log('task is changed'));
     handleModalClose();
   };
 
@@ -103,6 +53,10 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
 
   const [show, setShow] = useState(false);
 
+  const handleCancel = () => {
+    setUserData(todo);
+    setShow(false);
+  };
   const handleModalClose = () => setShow(false);
   const handleModalShow = () => setShow(true);
 
@@ -135,7 +89,6 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
                 id="name"
                 name="name"
                 maxLength={40}
-                size="sm"
                 value={userData.name}
                 onChange={handleChange}
               />
@@ -152,7 +105,7 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
                 required
               />
             </Form.Group>
-            {renderFile(fileStatus)}
+            {renderFile(userData.fileStatus)}
             <Form.Group className="mb-2">
               <Form.Label htmlFor="fileUrl">Add some files</Form.Label>
               <Form.Control ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
@@ -181,7 +134,7 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleModalClose}>
+          <Button variant="secondary" onClick={handleCancel}>
             Cancel
           </Button>
         </Modal.Footer>

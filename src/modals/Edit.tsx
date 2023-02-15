@@ -1,9 +1,10 @@
-import { FC, useRef, useState } from 'react';
+import { ChangeEventHandler, FC, FormEventHandler, useRef, useState } from 'react';
 import { Todo } from '../types';
 import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { doc, updateDoc } from '@firebase/firestore';
 import { db } from '../firebase';
 import { uploadFile } from '../utils/uploadFile';
+import editSvg from '../assets/img/pencil.svg';
 
 export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
   const [userData, setUserData] = useState(todo);
@@ -23,16 +24,16 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
     }
   };
 
-  const handleChange = (e: { currentTarget: { name: string; value: string } }) => {
-    const fieldName = e.currentTarget.name;
-    setUserData({ ...userData, [fieldName]: e.currentTarget.value });
+  const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+    const { name, value } = e.currentTarget;
+    setUserData({ ...userData, [name]: value });
   };
 
   const handleDeleteFile = () => {
     setUserData({ ...userData, fileStatus: false });
   };
 
-  const handleSubmit = (e: { preventDefault: () => void }) => {
+  const handleSubmit: FormEventHandler<HTMLElement> = (e) => {
     e.preventDefault();
     updateTask(userData).then(() => console.log('task is changed'));
     handleModalClose();
@@ -63,16 +64,7 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
   return (
     <>
       <Button variant="warning" onClick={handleModalShow}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          fill="currentColor"
-          className="bi bi-pencil"
-          viewBox="0 0 16 16"
-        >
-          <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
-        </svg>
+        <img src={editSvg} alt="edit" />
       </Button>
 
       <Modal show={show} onHide={handleModalClose}>
@@ -86,7 +78,6 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
               <Form.Control
                 required
                 type="text"
-                id="name"
                 name="name"
                 maxLength={40}
                 value={userData.name}
@@ -97,7 +88,6 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
               <Form.Label htmlFor="description">Task description</Form.Label>
               <Form.Control
                 as="textarea"
-                id="description"
                 name="description"
                 value={userData.description}
                 onChange={handleChange}
@@ -108,7 +98,7 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
             {renderFile(userData.fileStatus)}
             <Form.Group className="mb-2">
               <Form.Label htmlFor="fileUrl">Add some files</Form.Label>
-              <Form.Control ref={fileInputEl} type="file" id="file" name="fileUrl" onChange={handleChange} />
+              <Form.Control ref={fileInputEl} type="file" name="fileUrl" onChange={handleChange} />
             </Form.Group>
             <Row className="mb-2">
               <Col>
@@ -116,7 +106,6 @@ export const Edit: FC<{ todo: Todo }> = ({ todo }) => {
                   <Form.Label htmlFor="deadline">Deadline</Form.Label>
                   <Form.Control
                     type="date"
-                    id="start"
                     name="deadline"
                     min="2022-12-31"
                     max="2050-12-31"
